@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>				//Needed for I2C port
-#include "i2c.h"				//Needed for I2C port
+#include "../i2c.h"				//Needed for I2C port
 #include "esp_log.h"
 #include "driver/i2c.h"
 
