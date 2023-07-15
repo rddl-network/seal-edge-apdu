@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "reset.h"
+#include "../reset.h"
 #include <unistd.h>
 
 void se050_powerOn(void)
