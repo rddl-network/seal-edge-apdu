@@ -199,9 +199,9 @@ apdu_status_t se050_apdu_send_cmd(i2cm_tlv_t *tlv, uint8_t tlv_num, apdu_ctx_t *
 
 apdu_status_t apduInitInterface();
 apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID);
-apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t * digest, uint8_t *signature[], size_t * signatureLen );
+apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t * digest, uint8_t *signature[], int32_t * signatureLen );
 bool apduIDExists(uint32_t keyID);
-apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], size_t * pubkeyLen);
+apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], int32_t * pubkeyLen);
 apdu_status_t apduDeleteObj(uint32_t keyID);
 uint8_t apduReadObjType(uint32_t keyID);
 apdu_status_t apduReadCurve(phNxpEse_data  *resp);

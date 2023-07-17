@@ -401,7 +401,7 @@ apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
 	return APDU_OK;
 }
 
-apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t *digest, uint8_t *signature[], size_t * signatureLen ){
+apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t *digest, uint8_t *signature[], int32_t* signatureLen ){
 
 	// if(apduIDExists(keyID) == true){
 	// 	printf("Obj Exist\n");
@@ -418,7 +418,7 @@ apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uin
 
     apduTlvBuff[2].tag          = SE050_TAG_3;
     apduTlvBuff[2].cmd.len      = 32;
-    apduTlvBuff[2].cmd.p_data   = digest;
+    apduTlvBuff[2].cmd.p_data   = (uint8_t *)digest;
 
     if(se050_apdu_send_cmd(apduTlvBuff, 3, &ctx, &apdu_header_table[APDU_CMD_SIGN]) == APDU_ERROR) apduSysExit("APDU_CMD_SIGN");
 
@@ -451,7 +451,7 @@ bool apduIDExists(uint32_t keyID){
 	return (*response.p_data != SE050_RESULT_SUCCESS);
 }
 
-apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], size_t * pubkeyLen){
+apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], int32_t * pubkeyLen){
 	if(apduIDExists(keyID) == false)
 		return APDU_ERROR;
 

@@ -1,3 +1,4 @@
+#ifdef RPIZERO
 /**
  * Copyright (c) 2020, Michael Grand
  * SPDX-License-Identifier: Apache-2.0
@@ -103,3 +104,5 @@ i2c_error_t axI2CClose(void)
 
     return I2C_OK;
 }
+
+#endif

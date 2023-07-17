@@ -35,7 +35,7 @@ void Se050Middleware::generate_key_pair_nistp256(){
 
 
 std::vector<uint8_t> Se050Middleware::sign_sha256_digest(const std::vector<uint8_t>& digest){
-    size_t   sign_len = 256;
+    int32_t  sign_len = 256;
     uint8_t* resp_ptr = nullptr;
     std::vector<uint8_t> signature;
 
