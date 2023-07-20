@@ -1,4 +1,3 @@
-#ifdef RPIZERO
 /*
  * Copyright (c) 2020, Michael Grand
  * SPDX-License-Identifier: Apache-2.0
@@ -33,5 +32,3 @@ void se050_reset(void)
 	se050_powerOn();
 }
 
-
-#endif
