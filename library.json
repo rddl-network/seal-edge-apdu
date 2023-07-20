@@ -1,0 +1,23 @@
+{
+    "name": "se050",
+    "keywords": "se050, APDU, I2C",
+    "description": "Communication with se050 using APDU protocol via I2C",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com:rddl-network/seal-edge-apdu.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Fatih Asagidag",
+        "email": "fatihasagidag@gmail.com",
+        "maintainer": true
+      }
+    ],
+    "build": {
+        "srcDir": ".",
+        "srcFilter": "+<*> -<platform/rpizero> -<test/*>"
+    },
+    "version": "0.1.0"
+  }
