@@ -67,13 +67,14 @@ static esp_err_t i2c_master_init(void)
 
 i2c_error_t axI2CInit(void)
 {
+    i2c_error_t status = I2C_OK;
+    
     uint8_t data[2];
-    ESP_ERROR_CHECK(i2c_master_init());
-    ESP_LOGI(TAG, "I2C initialized successfully");
+    
+    if(i2c_master_init() != ESP_OK);
+        status = I2C_FAILED;
 
-    int a = (I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-    ESP_LOGI(TAG, "A %d ", a);
-    return I2C_OK;
+    return status;
 }
 
 i2c_error_t axI2CWrite(unsigned char bus_unused_param, 
@@ -81,15 +82,17 @@ i2c_error_t axI2CWrite(unsigned char bus_unused_param,
                        unsigned char *pTx, 
                        unsigned short txLen)
 {
+    i2c_error_t status = I2C_OK;
 
-    i2c_master_write_to_device(I2C_MASTER_NUM, SE050_SENSOR_ADDR, (uint8_t*)pTx, txLen, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);  
+    if(i2c_master_write_to_device(I2C_MASTER_NUM, SE050_SENSOR_ADDR, (uint8_t*)pTx, txLen, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS) != ESP_OK);  
+        status = I2C_FAILED;
    
-    // printf("I2C bus TX DATA: ");
+    // printf("I2C bus TX DATA: \n");
 	// for(int i=0; i<txLen; i++)
 	// 	printf("%02x ", pTx[i]);
 	// printf("\n");
 
-    return I2C_OK;
+    return status;
 }
 
 i2c_error_t axI2CRead(unsigned char bus, 
@@ -97,16 +100,18 @@ i2c_error_t axI2CRead(unsigned char bus,
                       unsigned char *pRx, 
                       unsigned short rxLen)
 {
+    i2c_error_t status = I2C_OK;
     usleep(200000);
 
-    i2c_master_read_from_device(I2C_MASTER_NUM, SE050_SENSOR_ADDR, pRx, rxLen, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    if(i2c_master_read_from_device(I2C_MASTER_NUM, SE050_SENSOR_ADDR, pRx, rxLen, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS) != ESP_OK)
+        status = I2C_FAILED;
         
-    // printf("\nI2C bus RX DATA: ");
+    // printf("\nI2C bus RX DATA: \n");
 	// for(int i=0; i<rxLen; i++)
 	// 	printf("%02x ", pRx[i]);
 	// printf("\n");
 
-    return I2C_OK;
+    return status;
 }
 
 i2c_error_t axI2CClose(void)
