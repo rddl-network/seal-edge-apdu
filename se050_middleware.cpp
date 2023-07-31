@@ -18,10 +18,10 @@ void Se050Middleware::init_interface(){
 
 
 void Se050Middleware::init_interface(int sda, int scl){
+    set_sda_scl_pins(sda, scl);
+    
     if(apduInitInterface() == APDU_ERROR)
         std::cout << "ERROR! se050 init_interface" << "\n";
-
-    set_sda_scl_pins(sda, scl);
     return;
 }
 
