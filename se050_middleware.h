@@ -1,4 +1,5 @@
 #include <vector>
+#include <sstream>
 
 #define MAKE_TEST_ID(x) (0xEF | x<<24) 
 
@@ -19,6 +20,9 @@ public:
     void print_hex_buffer(const std::vector<uint8_t>& hexBuff);
     int write_binary_data(size_t objId, const std::vector<uint8_t>& payload);
     std::vector<uint8_t> read_binary_data(size_t objId, size_t dataLen);
+    void write_error_msg(const char* msg);
+    void read_error_msg(char* msg);
+    std::ostringstream oss;
 
 private:
     int32_t mkey_id;
