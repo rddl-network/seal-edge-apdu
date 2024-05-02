@@ -262,8 +262,8 @@ apdu_status_t se050_apdu_send_cmd(i2cm_tlv_t *tlv, uint8_t tlv_num, apdu_ctx_t *
 }
 
 void apduSysExit(const char* msg){
-    printf("ERROR! %s\n", msg);
-    //exit(EXIT_FAILURE);
+    // printf("ERROR! %s\n", msg);
+    // exit(EXIT_FAILURE);
 }
 
 uint8_t apduReadObjType(uint32_t keyID){
@@ -368,23 +368,29 @@ apdu_status_t apduInitInterface(){
 apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
 	phNxpEse_data	resp;
 	
-	if(apduReadIDList(&resp) == APDU_ERROR)
+	if(apduReadIDList(&resp) == APDU_ERROR){
 		apduSysExit("apduReadIDList");
-
-	if(apduReadCryptoObjectList(&resp) == APDU_ERROR)
-		apduSysExit("apduReadCryptoObjectList");
-
-	if(apduIDExists(keyID) == true){
-		//printf("Obj Exist\n");
-		//return APDU_OK;
+		return APDU_ERROR;
 	}
 
-	if(apduReadCurve(&resp) == APDU_ERROR)
-		apduSysExit("apduReadCurve");
+	if(apduReadCryptoObjectList(&resp) == APDU_ERROR){
+		apduSysExit("apduReadCryptoObjectList");
+		return APDU_ERROR;
+	}
 
 	if(apduIDExists(keyID) == true){
-		//printf("Obj Exist\n");
-		//return APDU_OK;
+		apduSysExit("KeyPairAlreadyExist");
+		return APDU_ERROR;
+	}
+
+	if(apduReadCurve(&resp) == APDU_ERROR){
+		apduSysExit("apduReadCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduIDExists(keyID) == true){
+		apduSysExit("KeyPairAlreadyExist");
+		return APDU_ERROR;
 	}
 	
 	uint32_t data1    			= keyID;
@@ -403,9 +409,10 @@ apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
 
 apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t *digest, uint8_t *signature[], int32_t* signatureLen ){
 
-	// if(apduIDExists(keyID) == true){
-	// 	printf("Obj Exist\n");
-	// }
+	if(apduIDExists(keyID) != true){
+		apduSysExit("Obj Not Exist\n");
+		return APDU_ERROR;
+	}
 	
 	uint32_t data1				= keyID;
     apduTlvBuff[0].tag          = SE050_TAG_1;
@@ -431,6 +438,38 @@ apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uin
 	return APDU_OK;
 }
 
+
+bool apduVerifySha256DigestECDSA_NISTP256(const uint8_t *pubKey, int32_t pubKeyLen, const uint8_t *digest, const uint8_t *signature, int32_t signatureLen){
+	phNxpEse_data  response;
+
+    apduTlvBuff[0].tag          = SE050_TAG_1;
+    apduTlvBuff[0].cmd.len      = pubKeyLen;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)pubKey;
+
+    uint8_t data2[1]   			= {SE050_ECSignatureAlgo_SHA_256};
+    apduTlvBuff[1].tag          = SE050_TAG_2;
+    apduTlvBuff[1].cmd.len      = 1;
+    apduTlvBuff[1].cmd.p_data   = &data2[0];
+
+    apduTlvBuff[2].tag          = SE050_TAG_3;
+    apduTlvBuff[2].cmd.len      = 32;
+    apduTlvBuff[2].cmd.p_data   = (uint8_t *)digest;
+
+	apduTlvBuff[3].tag          = SE050_TAG_5;
+    apduTlvBuff[3].cmd.len      = signatureLen;
+    apduTlvBuff[3].cmd.p_data   = (uint8_t *)signature;
+
+    if(se050_apdu_send_cmd(apduTlvBuff, 4, &ctx, &apdu_header_table[APDU_CMD_VERIFY]) == APDU_ERROR) apduSysExit("APDU_CMD_VERIFY");
+
+	uint32_t le = 0;
+	uint32_t tmp_le = 0;
+	tmp_le = getTLVarray(SE050_TAG_1, &ctx.out.p_data[le], &response.p_data, &response.len, false);
+	CHECK_IF_ERROR_AND_ACCUMULATE(tmp_le, le);
+	
+	return (*response.p_data == SE050_RESULT_SUCCESS);
+}
+
+
 bool apduIDExists(uint32_t keyID){
 	phNxpEse_data  response;
 
@@ -439,17 +478,19 @@ bool apduIDExists(uint32_t keyID){
     apduTlvBuff[0].cmd.len      = 4;
     apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data;
 
-	if(se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_CHECK_OBJ]) == APDU_ERROR)
+	if(se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_CHECK_OBJ]) == APDU_ERROR){
         apduSysExit("APDU_CMD_CHECK_OBJ");
-	else{
+		return false;
+	}else{
 		uint32_t le = 0;
 		uint32_t tmp_le = 0;
 		tmp_le = getTLVarray(SE050_TAG_1, &ctx.out.p_data[le], &response.p_data, &response.len, false);
 		CHECK_IF_ERROR_AND_ACCUMULATE(tmp_le, le);
 	}
 
-	return (*response.p_data != SE050_RESULT_SUCCESS);
+	return (*response.p_data == SE050_RESULT_SUCCESS);
 }
+
 
 apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], int32_t * pubkeyLen){
 	if(apduIDExists(keyID) == false)
@@ -460,9 +501,10 @@ apdu_status_t apduGetECCPubKey_NISTP256(uint32_t keyID, uint8_t *pubkey[], int32
     apduTlvBuff[0].cmd.len      = 4;
     apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data;
 
-	if(se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_READ_PUB]) == APDU_ERROR)
+	if(se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_READ_PUB]) == APDU_ERROR){
         apduSysExit("APDU_CMD_READ_PUB");
-	else{
+		return APDU_ERROR;
+	}else{
 		uint32_t le = 0;
 		uint32_t tmp_le = 0;
 		tmp_le = getTLVarray(SE050_TAG_1, &ctx.out.p_data[le], pubkey, pubkeyLen, true);
@@ -480,10 +522,12 @@ apdu_status_t apduDeleteObj(uint32_t keyID){
 	uint8_t data[]	   			= {(uint8_t)((keyID>>24) & 0xFF), (uint8_t)((keyID>>16) & 0xFF) , (uint8_t)((keyID>>8) & 0xFF), (uint8_t)(keyID & 0xFF)};
     apduTlvBuff[0].tag          = SE050_TAG_1;
     apduTlvBuff[0].cmd.len      = 4;
-    apduTlvBuff[0].cmd.p_data   = data;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&keyID;
 
-	if((status = se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_DELETE_OBJ])) == APDU_ERROR)
+	if((status = se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_DELETE_OBJ])) == APDU_ERROR){
         apduSysExit("APDU_CMD_DELETE_OBJ");
+		status = APDU_ERROR;
+	}
 
 	return status;
 }	
@@ -542,7 +586,7 @@ apdu_status_t apduBinaryWriteData(uint32_t objId, const uint8_t *input, size_t i
 	uint8_t data1[4]			= {(uint8_t)((objId>>24 )& 0xFF), (uint8_t)((objId>>16 )& 0xFF) , (uint8_t)((objId>>8 )& 0xFF), (uint8_t)(objId & 0xFF)};
     apduTlvBuff[0].tag          = SE050_TAG_1;
     apduTlvBuff[0].cmd.len      = 4;
-    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data1;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&objId;
 
 	uint8_t fileLen[2]			= {(uint8_t)(inputLen>>8), (uint8_t)(inputLen & 0xFF)};
     apduTlvBuff[1].tag          = SE050_TAG_3;
@@ -568,7 +612,7 @@ apdu_status_t apduBinaryReadData(uint32_t objId, size_t dataLen , uint8_t* data[
 	uint8_t data1[4]			= {(uint8_t)((objId>>24 )& 0xFF), (uint8_t)((objId>>16 )& 0xFF) , (uint8_t)((objId>>8 )& 0xFF), (uint8_t)(objId & 0xFF)};
     apduTlvBuff[0].tag          = SE050_TAG_1;
     apduTlvBuff[0].cmd.len      = 4;
-    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data1;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&objId;
 
 	uint8_t fileLen[2]			= {(uint8_t)(dataLen>>8), (uint8_t)(dataLen & 0xFF)};
     apduTlvBuff[1].tag          = SE050_TAG_3;

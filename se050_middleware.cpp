@@ -8,7 +8,7 @@ extern "C"{
     #include "platform/i2c.h"
 }
 
-Se050Middleware se050_obj; 
+Se050Middleware se050_obj{213}; 
 
 
 void Se050Middleware::init_interface(){
@@ -44,9 +44,28 @@ std::vector<uint8_t> Se050Middleware::sign_sha256_digest(const std::vector<uint8
     if(apduSignSha256DigestECDSA_NISTP256(mkey_id, digest.data(), &resp_ptr, &sign_len) == APDU_ERROR)
         write_error_msg("ERROR! se050 sign_sha256_digest\n");
     else
-        signature.insert(signature.begin(), resp_ptr, resp_ptr + SHA256_HASH_BUFF_SIZE);
+        signature.insert(signature.begin(), resp_ptr, resp_ptr + (sign_len));
     
     return signature;
+}
+
+
+bool Se050Middleware::verify_sha256_digest(const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey){
+    bool result = true;
+
+    if(pubKey.size() == 32){
+        if(apduVerifySha256DigestECDSA_NISTP256(pubKey.data(), pubKey.size(), digest.data(), signature.data(), signature.size()) == false){
+            write_error_msg("ERROR! se050 verify_sha256_digest\n");
+            result = false;
+        }
+    } else{
+        if(apduVerifySha256DigestECDSA_NISTP256(reinterpret_cast<uint8_t*>(&mkey_id), 4, digest.data(), signature.data(), signature.size()) == false){
+            write_error_msg("ERROR! se050 verify_sha256_digest\n");
+            result = false;
+        }
+    }
+
+    return result;
 }
 
 
@@ -77,7 +96,7 @@ std::vector<uint8_t> Se050Middleware::generate_random_number(size_t size){
 
 
 
-void Se050Middleware::delete_obj(size_t objId){
+void Se050Middleware::delete_obj(uint32_t objId){
     if(apduDeleteObj(objId) == APDU_ERROR)
         write_error_msg("ERROR! se050 delete_obj\n");
 
@@ -92,7 +111,7 @@ void Se050Middleware::print_hex_buffer(const std::vector<uint8_t>& hexBuff){
 }
 
 
-int Se050Middleware::write_binary_data(size_t objId, const std::vector<uint8_t>& payload){
+int Se050Middleware::write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload){
     uint8_t* resp_ptr = nullptr;
     int      ret_val = 0;
 
@@ -105,7 +124,7 @@ int Se050Middleware::write_binary_data(size_t objId, const std::vector<uint8_t>&
 }
 
 
-std::vector<uint8_t> Se050Middleware::read_binary_data(size_t objId, size_t dataLen){
+std::vector<uint8_t> Se050Middleware::read_binary_data(uint32_t objId, size_t dataLen){
     uint8_t* resp_ptr = nullptr;
     std::vector<uint8_t> signature;
 
@@ -118,6 +137,25 @@ std::vector<uint8_t> Se050Middleware::read_binary_data(size_t objId, size_t data
 }
 
 
+std::vector<uint8_t> Se050Middleware::get_public_key(){
+    uint8_t* resp_ptr = nullptr;
+    int32_t dataLen{0};
+    std::vector<uint8_t> pubKey;
+
+    if(apduGetECCPubKey_NISTP256(mkey_id, &resp_ptr, &dataLen) == APDU_ERROR)
+        write_error_msg("ERROR! se050 get_public_key\n");    
+    else
+        pubKey.insert(pubKey.begin(), resp_ptr, resp_ptr + dataLen);
+
+    return pubKey;
+}
+
+
+bool Se050Middleware::check_obj_exist(uint32_t objId){
+    return apduIDExists(objId);
+}
+
+
 void Se050Middleware::write_error_msg(const char* msg){
     oss.str("");
     oss.clear();
@@ -127,4 +165,6 @@ void Se050Middleware::write_error_msg(const char* msg){
 
 void Se050Middleware::read_error_msg(char* msg){
     strcpy(msg, oss.str().data());
+    oss.str("");
+    oss.clear();
 } 
