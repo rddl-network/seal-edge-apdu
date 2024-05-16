@@ -1572,6 +1572,18 @@ exit:
 #endif
 /** @} */
 
-void log_log(int level, const char *file, int line, const char *fmt, ...){
+#include <stdio.h>
+#include <stdarg.h>
 
+void log_log(int level, const char *file, int line, const char *fmt, ...){
+    // va_list args;
+    // va_start(args, fmt);
+    
+    // // Print the log level, file, and line number
+    // printf("\n\n\n[%d] %s:%d - ", level, file, line);
+    
+    // // Print the formatted message
+    // vprintf(fmt, args);
+    
+    // va_end(args);
 }
