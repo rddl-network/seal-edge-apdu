@@ -28,6 +28,14 @@ void Se050Middleware::init_interface(int sda, int scl){
 }
 
 
+void Se050Middleware::close_interface(){
+    if(apduCloseInterface() == APDU_ERROR)
+        write_error_msg("ERROR! se050 close_interface\n");
+
+    return;
+}
+
+
 void Se050Middleware::generate_key_pair_nistp256(){
     if(apduGenerateECCKeyPair_NISTP256(mkey_id) == APDU_ERROR)
         write_error_msg("ERROR! se050 generate_key_pair_nistp256\n");

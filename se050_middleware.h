@@ -12,6 +12,7 @@ public:
     ~Se050Middleware(){}
     void init_interface();
     void init_interface(int sda, int scl);
+    void close_interface();
     void generate_key_pair_nistp256();
     std::vector<uint8_t> sign_sha256_digest(const std::vector<uint8_t>& digest);
     bool verify_sha256_digest(const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey = std::vector<uint8_t>{});

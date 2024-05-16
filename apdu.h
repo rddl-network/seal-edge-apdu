@@ -198,6 +198,7 @@ apdu_status_t se050_apdu_check_object(uint32_t obj_id, apdu_ctx_t *ctx, phNxpEse
 apdu_status_t se050_apdu_send_cmd(i2cm_tlv_t *tlv, uint8_t tlv_num, apdu_ctx_t *ctx, apdu_header_table_t* apt_cmd);
 
 apdu_status_t apduInitInterface();
+apdu_status_t apduCloseInterface();
 apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID);
 apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t * digest, uint8_t *signature[], int32_t * signatureLen );
 bool apduVerifySha256DigestECDSA_NISTP256(const uint8_t *pubKey, int32_t pubKeyLen, const uint8_t *digest, const uint8_t *signature, int32_t signatureLen);

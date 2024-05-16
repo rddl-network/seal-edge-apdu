@@ -365,6 +365,10 @@ apdu_status_t apduInitInterface(){
 	return APDU_OK;
 }
 
+apdu_status_t apduCloseInterface(){
+	return apduSe050Disconnect(&ctx);
+}
+
 apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
 	phNxpEse_data	resp;
 	
