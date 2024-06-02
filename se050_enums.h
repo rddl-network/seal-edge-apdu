@@ -61,6 +61,7 @@ typedef enum
 typedef enum
 {
     SE050_P2_DEFAULT        = 0x00,
+    SE050_P2_CREATE         = 0x04,
     SE050_P2_SIGN           = 0x09,
     SE050_P2_VERIFY         = 0x0A,
     SE050_P2_ONESHOT        = 0x0E,
@@ -73,11 +74,13 @@ typedef enum
     SE050_P2_DELETEALL      = 0x2A,
     SE050_P2_I2CM           = 0x30,
     SE050_P2_ID             = 0x36,
+    SE050_P2_PARAM          = 0x40,
     SE050_P2_RANDOM         = 0x49
 } SE050_P2_t;
 
 typedef enum
 {
+    SE050_TAG_POLICY = 0x11,
     SE050_TAG_1 = 0x41,
     SE050_TAG_2 = 0x42,
     SE050_TAG_3 = 0x43,
@@ -190,6 +193,17 @@ typedef enum
     SE050_ID_ECC_ED_25519 = 0x40, 
     SE050_ID_ECC_MONT_DH_25519 = 0x41 
 }SE050_ECCurve_t;
+
+
+typedef enum
+{
+    SE050_CURVE_PARAM_A     = 0x01,
+    SE050_CURVE_PARAM_B     = 0x02,
+    SE050_CURVE_PARAM_G     = 0x04,
+    SE050_CURVE_PARAM_N     = 0x08,
+    SE050_CURVE_PARAM_P     = 0x10,
+}SE050_Curve_Param_t;
+
 
 typedef enum
 {

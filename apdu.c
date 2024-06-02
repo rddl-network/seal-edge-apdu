@@ -41,7 +41,9 @@ static apdu_header_table_t     apdu_header_table[NUMBER_OF_APDU_CMD] = {
 /* APDU_CMD_READ_PUB*/          {0x80,      SE050_INS_READ,     SE050_P1_DEFAULT, 	SE050_P2_DEFAULT,      		-2},
 /* APDU_CMD_VERIFY*/            {0x80,      SE050_INS_CRYPTO,   SE050_P1_SIGNATURE, SE050_P2_VERIFY,            -1},
 /* APDU_CMD_DIGESTONESHOT*/     {0x80,      SE050_INS_CRYPTO,   SE050_P1_DEFAULT, 	SE050_P2_ONESHOT,           -1},
-/* APDU_CMD_BINARYWRITE*/		{0x80,      SE050_INS_WRITE,   	SE050_P1_BINARY, 	SE050_P2_DEFAULT,           -1}
+/* APDU_CMD_BINARYWRITE*/		{0x80,      SE050_INS_WRITE,   	SE050_P1_BINARY, 	SE050_P2_DEFAULT,           -1},
+/* APDU_CMD_CREATE_CURVE*/		{0x80,      SE050_INS_WRITE,   	SE050_P1_CURVE, 	SE050_P2_CREATE,            -1},
+/* APDU_CMD_SET_CURVE*/			{0x80,      SE050_INS_WRITE,   	SE050_P1_CURVE, 	SE050_P2_PARAM,				-1}
 };
 
 #define CHECK_IF_ERROR_AND_ACCUMULATE(tmp, acc) if(tmp > 0) {\
@@ -53,6 +55,30 @@ static apdu_header_table_t     apdu_header_table[NUMBER_OF_APDU_CMD] = {
 #define CHECK_IF_ERROR(a)	if(a != APDU_OK) {\
 								return APDU_ERROR;\
 							}
+
+const uint8_t curve_param_secp256_a[] = 
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+const uint8_t curve_param_secp256_b[] = 
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07};
+
+const uint8_t curve_param_secp256_g[] = 
+    {0x04, 
+     0x79, 0xBE, 0x66, 0x7E, 0xF9, 0xDC, 0xBB, 0xAC, 0x55, 0xA0, 0x62, 0x95, 0xCE, 0x87, 0x0B, 0x07, 
+     0x02, 0x9B, 0xFC, 0xDB, 0x2D, 0xCE, 0x28, 0xD9, 0x59, 0xF2, 0x81, 0x5B, 0x16, 0xF8, 0x17, 0x98, 
+     0x48, 0x3A, 0xDA, 0x77, 0x26, 0xA3, 0xC4, 0x65, 0x5D, 0xA4, 0xFB, 0xFC, 0x0E, 0x11, 0x08, 0xA8, 
+     0xFD, 0x17, 0xB4, 0x48, 0xA6, 0x85, 0x54, 0x19, 0x9C, 0x47, 0xD0, 0x8F, 0xFB, 0x10, 0xD4, 0xB8};
+
+const uint8_t curve_param_secp256_n[] = 
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 
+     0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B, 0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41};
+
+const uint8_t curve_param_secp256_p[] = 
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
+     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x2F};
+
 
 static uint32_t getTLVarray(SE050_TAG_t tag, uint8_t *buff, uint8_t *array[],
 		int32_t *len, bool extended) {
@@ -585,26 +611,34 @@ apdu_status_t apduGenerateRandom(size_t size , uint8_t *output[]){
 }
 
 
-apdu_status_t apduBinaryWriteData(uint32_t objId, const uint8_t *input, size_t inputLen){
+apdu_status_t apduBinaryWriteData(uint32_t objId, const uint8_t *input, size_t inputLen, bool deletable){
 	apdu_status_t status = APDU_OK;
-	uint8_t data1[4]			= {(uint8_t)((objId>>24 )& 0xFF), (uint8_t)((objId>>16 )& 0xFF) , (uint8_t)((objId>>8 )& 0xFF), (uint8_t)(objId & 0xFF)};
-    apduTlvBuff[0].tag          = SE050_TAG_1;
-    apduTlvBuff[0].cmd.len      = 4;
-    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&objId;
+	apdu_obj_policy_t policy;
+	memset(&policy, 0, sizeof(apdu_obj_policy_t));
+
+	policy.op_policy_length = 8;
+	policy.op_pol_rules.polr_allow_write = 1;
+	policy.op_pol_rules.polr_allow_read	 = 1;
+	policy.op_pol_rules.polr_allow_delete = deletable;
+
+    apduTlvBuff[0].tag          = SE050_TAG_POLICY;
+    apduTlvBuff[0].cmd.len      = 9;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t*)&policy;
+
+    apduTlvBuff[1].tag          = SE050_TAG_1;
+    apduTlvBuff[1].cmd.len      = 4;
+    apduTlvBuff[1].cmd.p_data   = (uint8_t *)&objId;
 
 	uint8_t fileLen[2]			= {(uint8_t)(inputLen>>8), (uint8_t)(inputLen & 0xFF)};
-    apduTlvBuff[1].tag          = SE050_TAG_3;
-    apduTlvBuff[1].cmd.len      = 2;
-    apduTlvBuff[1].cmd.p_data   = (uint8_t *)&fileLen;
+    apduTlvBuff[2].tag          = SE050_TAG_3;
+    apduTlvBuff[2].cmd.len      = 2;
+    apduTlvBuff[2].cmd.p_data   = (uint8_t *)&fileLen;
 
-	uint8_t* data_ptr			= (uint8_t*)malloc(inputLen + 1);
-	//data_ptr[0]					= (uint8_t)inputLen;
-	memcpy(&data_ptr[0], input, inputLen);
-	apduTlvBuff[2].tag          = SE050_TAG_4;
-    apduTlvBuff[2].cmd.len      = inputLen;
-    apduTlvBuff[2].cmd.p_data   = data_ptr;
+	apduTlvBuff[3].tag          = SE050_TAG_4;
+    apduTlvBuff[3].cmd.len      = inputLen;
+    apduTlvBuff[3].cmd.p_data   = (uint8_t *)input;
 
-	if((status = se050_apdu_send_cmd(apduTlvBuff, 3, &ctx, &apdu_header_table[APDU_CMD_BINARYWRITE])) == APDU_ERROR)
+	if((status = se050_apdu_send_cmd(apduTlvBuff, 4, &ctx, &apdu_header_table[APDU_CMD_BINARYWRITE])) == APDU_ERROR)
         apduSysExit("APDU_CMD_BINARYWRITE");
 
 	return status;
@@ -634,4 +668,197 @@ apdu_status_t apduBinaryReadData(uint32_t objId, size_t dataLen , uint8_t* data[
 	}
 
 	return status;
+}
+
+
+apdu_status_t apduCreateECCurve(phNxpEse_data  *resp, uint8_t curveID){
+
+    apduTlvBuff[0].tag          = SE050_TAG_1;
+    apduTlvBuff[0].cmd.len      = 1;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&curveID;
+
+	if(se050_apdu_send_cmd(apduTlvBuff, 1, &ctx, &apdu_header_table[APDU_CMD_CREATE_CURVE]) == APDU_ERROR)
+        apduSysExit("APDU_CMD_CREATE_CURVE");
+
+	uint32_t le 	= 0;
+	uint32_t tmp_le = 0;
+	tmp_le = getTLVarray(SE050_TAG_1, &ctx.out.p_data[le], &resp->p_data, &resp->len, true);
+	//CHECK_IF_ERROR_AND_ACCUMULATE(tmp_le, le);
+	
+	return APDU_OK;
+}
+
+
+apdu_status_t apduSetECCurveParam(uint8_t curveID, uint8_t paramID, uint8_t* data, uint32_t dataLen){
+
+    apduTlvBuff[0].tag          = SE050_TAG_1;
+    apduTlvBuff[0].cmd.len      = 1;
+    apduTlvBuff[0].cmd.p_data   = &curveID;
+
+	apduTlvBuff[1].tag          = SE050_TAG_2;
+    apduTlvBuff[1].cmd.len      = 1;
+    apduTlvBuff[1].cmd.p_data   = &paramID;
+
+	apduTlvBuff[2].tag          = SE050_TAG_3;
+    apduTlvBuff[2].cmd.len      = dataLen;
+    apduTlvBuff[2].cmd.p_data   = data;
+
+	if(se050_apdu_send_cmd(apduTlvBuff, 3, &ctx, &apdu_header_table[APDU_CMD_SET_CURVE]) == APDU_ERROR){
+		apduSysExit("APDU_CMD_SET_CURVE");
+		return APDU_ERROR;
+	}
+
+	return APDU_OK;
+}
+
+
+apdu_status_t apduSetSECP256KCurve(){
+
+	if(apduSetECCurveParam(SE050_Secp256k1, SE050_CURVE_PARAM_A, (uint8_t *)curve_param_secp256_a, sizeof(curve_param_secp256_a)) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetECCurveParam(SE050_Secp256k1, SE050_CURVE_PARAM_B, (uint8_t *)curve_param_secp256_b, sizeof(curve_param_secp256_b)) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetECCurveParam(SE050_Secp256k1, SE050_CURVE_PARAM_G, (uint8_t *)curve_param_secp256_g, sizeof(curve_param_secp256_g)) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetECCurveParam(SE050_Secp256k1, SE050_CURVE_PARAM_N, (uint8_t *)curve_param_secp256_n, sizeof(curve_param_secp256_n)) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetECCurveParam(SE050_Secp256k1, SE050_CURVE_PARAM_P, (uint8_t *)curve_param_secp256_p, sizeof(curve_param_secp256_p)) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	return APDU_OK;
+}
+
+
+apdu_status_t apduGenerateECCKeyPair_SECP256K1(uint32_t keyID, bool deletable){
+	phNxpEse_data	resp;
+
+	if(apduCreateECCurve(&resp, SE050_Secp256k1) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetSECP256KCurve() == APDU_ERROR){
+		apduSysExit("apduSetSECP256KCurve");
+		return APDU_ERROR;
+	}
+
+	// if(apduReadIDList(&resp) == APDU_ERROR){
+	// 	apduSysExit("apduReadIDList");
+	// 	return APDU_ERROR;
+	// }
+
+	// if(apduReadCurve(&resp) == APDU_ERROR){
+	// 	apduSysExit("apduReadCurve");
+	// 	return APDU_ERROR;
+	// }
+
+	// if(apduIDExists(keyID) == true){
+	// 	apduSysExit("KeyPairAlreadyExist");
+	// 	return APDU_ERROR;
+	// }
+	
+	apdu_obj_policy_t policy;
+	memset(&policy, 0, sizeof(apdu_obj_policy_t));
+
+	policy.op_policy_length = 8;
+	
+	policy.op_pol_rules.polr_allow_decryption	= 1;
+	policy.op_pol_rules.polr_allow_encryption	= 1;
+	policy.op_pol_rules.polr_allow_verify		= 1;
+	policy.op_pol_rules.polr_allow_sign			= 1;
+	policy.op_pol_rules.polr_allow_delete		= deletable;
+	policy.op_pol_rules.polr_allow_write		= 1;
+	policy.op_pol_rules.polr_allow_read			= 1;
+	policy.op_pol_rules.polr_allow_wrap			= 1;
+	policy.op_pol_rules.polr_allow_key_derivation = 1;
+	policy.op_pol_rules.polr_allow_attestation	= 1;
+
+    apduTlvBuff[0].tag          = SE050_TAG_POLICY;
+    apduTlvBuff[0].cmd.len      = 9;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t*)&policy;
+
+	uint32_t data1    			= keyID;
+    apduTlvBuff[1].tag          = SE050_TAG_1;
+    apduTlvBuff[1].cmd.len      = 4;
+    apduTlvBuff[1].cmd.p_data   = (uint8_t *)&data1;
+	
+    uint8_t data2[1]    		= {SE050_Secp256k1};
+    apduTlvBuff[2].tag          = SE050_TAG_2;
+    apduTlvBuff[2].cmd.len      = 1;
+    apduTlvBuff[2].cmd.p_data   = &data2[0]; 
+
+    if(se050_apdu_send_cmd(apduTlvBuff, 3, &ctx, &apdu_header_table[APDU_CMD_WRITE_OBJ]) == APDU_ERROR) apduSysExit("APDU_CMD_WRITE_OBJ");
+
+	return APDU_OK;
+}
+
+
+apdu_status_t apduInjectECCKeyPair_SECP256K1(uint32_t keyID, uint8_t* privKey, uint32_t privKeyLen, uint8_t* pubKey, uint32_t pubKeyLen, bool deletable){
+	phNxpEse_data	resp;
+
+	if(apduCreateECCurve(&resp, SE050_Secp256k1) == APDU_ERROR){
+		apduSysExit("apduCreateECCurve");
+		return APDU_ERROR;
+	}
+
+	if(apduSetSECP256KCurve() == APDU_ERROR){
+		apduSysExit("apduSetSECP256KCurve");
+		return APDU_ERROR;
+	}
+	
+	// apdu_obj_policy_t policy;
+	// memset(&policy, 0, sizeof(apdu_obj_policy_t));
+
+	// policy.op_policy_length = 8;
+	
+	// policy.op_pol_rules.polr_allow_decryption	= 1;
+	// policy.op_pol_rules.polr_allow_encryption	= 1;
+	// policy.op_pol_rules.polr_allow_verify		= 1;
+	// policy.op_pol_rules.polr_allow_sign			= 1;
+	// policy.op_pol_rules.polr_allow_delete		= deletable;
+	// policy.op_pol_rules.polr_allow_write			= 1;
+	// policy.op_pol_rules.polr_allow_read			= 1;
+	// policy.op_pol_rules.polr_allow_wrap			= 1;
+	// policy.op_pol_rules.polr_allow_key_derivation = 1;
+	// policy.op_pol_rules.polr_allow_attestation	= 1;
+
+    // apduTlvBuff[0].tag          = SE050_TAG_POLICY;
+    // apduTlvBuff[0].cmd.len      = 9;
+    // apduTlvBuff[0].cmd.p_data   = (uint8_t*)&policy;
+
+	uint32_t data1    			= keyID;
+    apduTlvBuff[0].tag          = SE050_TAG_1;
+    apduTlvBuff[0].cmd.len      = 4;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data1;
+	
+    uint8_t data2[1]    		= {SE050_Secp256k1};
+    apduTlvBuff[1].tag          = SE050_TAG_2;
+    apduTlvBuff[1].cmd.len      = 1;
+    apduTlvBuff[1].cmd.p_data   = &data2[0]; 
+
+    apduTlvBuff[2].tag          = SE050_TAG_3;
+    apduTlvBuff[2].cmd.len      = privKeyLen;
+    apduTlvBuff[2].cmd.p_data   = privKey; 
+
+    apduTlvBuff[3].tag          = SE050_TAG_4;
+    apduTlvBuff[3].cmd.len      = pubKeyLen;
+    apduTlvBuff[3].cmd.p_data   = pubKey; 
+
+    if(se050_apdu_send_cmd(apduTlvBuff, 4, &ctx, &apdu_header_table[APDU_CMD_WRITE_OBJ]) == APDU_ERROR) apduSysExit("APDU_CMD_WRITE_OBJ");
+
+	return APDU_OK;
 }

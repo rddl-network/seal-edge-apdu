@@ -13,9 +13,9 @@ public:
     void init_interface();
     void init_interface(int sda, int scl);
     void close_interface();
-    void generate_key_pair_nistp256();
-    std::vector<uint8_t> sign_sha256_digest(const std::vector<uint8_t>& digest);
-    bool verify_sha256_digest(const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey = std::vector<uint8_t>{});
+    void generate_key_pair_nistp256(uint32_t keyID);
+    std::vector<uint8_t> sign_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest);
+    bool verify_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey = std::vector<uint8_t>{});
     std::vector<uint8_t> calculate_sha256(std::vector<uint8_t>& payload);
     std::vector<uint8_t> generate_random_number(size_t size = 32);
     void delete_obj(uint32_t objId);
@@ -25,12 +25,12 @@ public:
     void write_error_msg(const char* msg);
     void read_error_msg(char* msg);
     bool check_obj_exist(uint32_t objId);
-    std::vector<uint8_t> get_public_key();
+    void generate_key_pair_secp256k1(uint32_t keyID, bool deletable = true);
+    void generate_key_pair_secp256k1(uint32_t keyID,std::vector<uint8_t>& privKey, std::vector<uint8_t>& pubKey, bool deletable = true);
+    std::vector<uint8_t> get_public_key(uint32_t keyID);
     std::ostringstream oss;
     uint32_t get_key_id(){return mkey_id;}
 
 private:
     uint32_t mkey_id;
 };
-
-extern Se050Middleware se050_obj; 

@@ -8,12 +8,18 @@ extern "C"{
     #include "platform/i2c.h"
 }
 
-Se050Middleware se050_obj{213}; 
-
 
 void Se050Middleware::init_interface(){
     if(apduInitInterface() == APDU_ERROR)
         write_error_msg("ERROR! se050 init_interface\n");
+
+    return;
+}
+
+
+void Se050Middleware::close_interface(){
+    if(apduCloseInterface() == APDU_ERROR)
+        write_error_msg("ERROR! se050 close_interface\n");
 
     return;
 }
@@ -28,28 +34,20 @@ void Se050Middleware::init_interface(int sda, int scl){
 }
 
 
-void Se050Middleware::close_interface(){
-    if(apduCloseInterface() == APDU_ERROR)
-        write_error_msg("ERROR! se050 close_interface\n");
-
-    return;
-}
-
-
-void Se050Middleware::generate_key_pair_nistp256(){
-    if(apduGenerateECCKeyPair_NISTP256(mkey_id) == APDU_ERROR)
+void Se050Middleware::generate_key_pair_nistp256(uint32_t keyID){
+    if(apduGenerateECCKeyPair_NISTP256(keyID) == APDU_ERROR)
         write_error_msg("ERROR! se050 generate_key_pair_nistp256\n");
 
     return;
 }
 
 
-std::vector<uint8_t> Se050Middleware::sign_sha256_digest(const std::vector<uint8_t>& digest){
+std::vector<uint8_t> Se050Middleware::sign_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest){
     int32_t  sign_len = 256;
     uint8_t* resp_ptr = nullptr;
     std::vector<uint8_t> signature;
 
-    if(apduSignSha256DigestECDSA_NISTP256(mkey_id, digest.data(), &resp_ptr, &sign_len) == APDU_ERROR)
+    if(apduSignSha256DigestECDSA_NISTP256(keyID, digest.data(), &resp_ptr, &sign_len) == APDU_ERROR)
         write_error_msg("ERROR! se050 sign_sha256_digest\n");
     else
         signature.insert(signature.begin(), resp_ptr, resp_ptr + (sign_len));
@@ -58,7 +56,7 @@ std::vector<uint8_t> Se050Middleware::sign_sha256_digest(const std::vector<uint8
 }
 
 
-bool Se050Middleware::verify_sha256_digest(const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey){
+bool Se050Middleware::verify_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey){
     bool result = true;
 
     if(pubKey.size() == 32){
@@ -67,7 +65,7 @@ bool Se050Middleware::verify_sha256_digest(const std::vector<uint8_t>& digest, c
             result = false;
         }
     } else{
-        if(apduVerifySha256DigestECDSA_NISTP256(reinterpret_cast<uint8_t*>(&mkey_id), 4, digest.data(), signature.data(), signature.size()) == false){
+        if(apduVerifySha256DigestECDSA_NISTP256(reinterpret_cast<uint8_t*>(&keyID), 4, digest.data(), signature.data(), signature.size()) == false){
             write_error_msg("ERROR! se050 verify_sha256_digest\n");
             result = false;
         }
@@ -145,12 +143,12 @@ std::vector<uint8_t> Se050Middleware::read_binary_data(uint32_t objId, size_t da
 }
 
 
-std::vector<uint8_t> Se050Middleware::get_public_key(){
+std::vector<uint8_t> Se050Middleware::get_public_key(uint32_t keyID){
     uint8_t* resp_ptr = nullptr;
     int32_t dataLen{0};
     std::vector<uint8_t> pubKey;
 
-    if(apduGetECCPubKey_NISTP256(mkey_id, &resp_ptr, &dataLen) == APDU_ERROR)
+    if(apduGetECCPubKey_NISTP256(keyID, &resp_ptr, &dataLen) == APDU_ERROR)
         write_error_msg("ERROR! se050 get_public_key\n");    
     else
         pubKey.insert(pubKey.begin(), resp_ptr, resp_ptr + dataLen);
@@ -161,6 +159,22 @@ std::vector<uint8_t> Se050Middleware::get_public_key(){
 
 bool Se050Middleware::check_obj_exist(uint32_t objId){
     return apduIDExists(objId);
+}
+
+
+void Se050Middleware::generate_key_pair_secp256k1(uint32_t keyID, bool deletable){
+    if(apduGenerateECCKeyPair_SECP256K1(keyID, deletable) == APDU_ERROR)
+        write_error_msg("ERROR! se050 generate_key_pair_secp256k1\n");
+
+    return;
+}
+
+
+void Se050Middleware::generate_key_pair_secp256k1(uint32_t keyID, std::vector<uint8_t>& privKey, std::vector<uint8_t>& pubKey, bool deletable){
+    if(apduInjectECCKeyPair_SECP256K1(keyID, privKey.data(), privKey.size(), pubKey.data(), pubKey.size(), deletable) == APDU_ERROR)
+        write_error_msg("ERROR! se050 generate_key_pair_secp256k1\n");
+
+    return;
 }
 
 
@@ -176,3 +190,5 @@ void Se050Middleware::read_error_msg(char* msg){
     oss.str("");
     oss.clear();
 } 
+
+
