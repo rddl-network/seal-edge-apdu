@@ -117,11 +117,11 @@ void Se050Middleware::print_hex_buffer(const std::vector<uint8_t>& hexBuff){
 }
 
 
-int Se050Middleware::write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload){
+int Se050Middleware::write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload, bool deletable){
     uint8_t* resp_ptr = nullptr;
     int      ret_val = 0;
 
-    if(apduBinaryWriteData(objId, payload.data(), payload.size()) == APDU_ERROR)
+    if(apduBinaryWriteData(objId, payload.data(), payload.size(), deletable) == APDU_ERROR)
         write_error_msg("ERROR! se050 write_binary_data\n");
     else
         ret_val = payload.size();

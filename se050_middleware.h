@@ -20,7 +20,7 @@ public:
     std::vector<uint8_t> generate_random_number(size_t size = 32);
     void delete_obj(uint32_t objId);
     void print_hex_buffer(const std::vector<uint8_t>& hexBuff);
-    int write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload);
+    int write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload, bool deletable);
     std::vector<uint8_t> read_binary_data(uint32_t objId, size_t dataLen);
     void write_error_msg(const char* msg);
     void read_error_msg(char* msg);
