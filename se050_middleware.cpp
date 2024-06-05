@@ -102,11 +102,15 @@ std::vector<uint8_t> Se050Middleware::generate_random_number(size_t size){
 
 
 
-void Se050Middleware::delete_obj(uint32_t objId){
-    if(apduDeleteObj(objId) == APDU_ERROR)
-        write_error_msg("ERROR! se050 delete_obj\n");
+bool Se050Middleware::delete_obj(uint32_t objId){
+    bool status{true};
 
-    return;
+    if(apduDeleteObj(objId) == APDU_ERROR){
+        write_error_msg("ERROR! se050 delete_obj\n");
+        status = false;
+    }
+    
+    return status;
 }
 
 

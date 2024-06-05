@@ -18,7 +18,7 @@ public:
     bool verify_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey = std::vector<uint8_t>{});
     std::vector<uint8_t> calculate_sha256(std::vector<uint8_t>& payload);
     std::vector<uint8_t> generate_random_number(size_t size = 32);
-    void delete_obj(uint32_t objId);
+    bool delete_obj(uint32_t objId);
     void print_hex_buffer(const std::vector<uint8_t>& hexBuff);
     int write_binary_data(uint32_t objId, const std::vector<uint8_t>& payload, bool deletable = true);
     std::vector<uint8_t> read_binary_data(uint32_t objId, size_t dataLen);
