@@ -13,7 +13,7 @@ public:
     void init_interface();
     void init_interface(int sda, int scl);
     void close_interface();
-    void generate_key_pair_nistp256(uint32_t keyID);
+    void generate_key_pair_nistp256(uint32_t keyID, bool deletable = true);
     std::vector<uint8_t> sign_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest);
     bool verify_sha256_digest(uint32_t keyID, const std::vector<uint8_t>& digest, const std::vector<uint8_t> signature, const std::vector<uint8_t> pubKey = std::vector<uint8_t>{});
     std::vector<uint8_t> calculate_sha256(std::vector<uint8_t>& payload);

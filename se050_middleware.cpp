@@ -34,8 +34,8 @@ void Se050Middleware::init_interface(int sda, int scl){
 }
 
 
-void Se050Middleware::generate_key_pair_nistp256(uint32_t keyID){
-    if(apduGenerateECCKeyPair_NISTP256(keyID) == APDU_ERROR)
+void Se050Middleware::generate_key_pair_nistp256(uint32_t keyID, bool deletable){
+    if(apduGenerateECCKeyPair_NISTP256(keyID, deletable) == APDU_ERROR)
         write_error_msg("ERROR! se050 generate_key_pair_nistp256\n");
 
     return;

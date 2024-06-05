@@ -395,7 +395,7 @@ apdu_status_t apduCloseInterface(){
 	return apduSe050Disconnect(&ctx);
 }
 
-apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
+apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID, bool deletable){
 	phNxpEse_data	resp;
 	
 	if(apduReadIDList(&resp) == APDU_ERROR){
@@ -422,17 +422,38 @@ apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID){
 		apduSysExit("KeyPairAlreadyExist");
 		return APDU_ERROR;
 	}
+
+	apdu_obj_policy_t policy;
+	memset(&policy, 0, sizeof(apdu_obj_policy_t));
+
+	policy.op_policy_length = 8;
+	
+	policy.op_pol_rules.polr_allow_decryption	= 1;
+	policy.op_pol_rules.polr_allow_encryption	= 1;
+	policy.op_pol_rules.polr_allow_verify		= 1;
+	policy.op_pol_rules.polr_allow_sign			= 1;
+	policy.op_pol_rules.polr_allow_delete		= deletable;
+	policy.op_pol_rules.polr_allow_write		= 1;
+	policy.op_pol_rules.polr_allow_read			= 1;
+	policy.op_pol_rules.polr_allow_wrap			= 1;
+	policy.op_pol_rules.polr_allow_key_derivation = 1;
+	policy.op_pol_rules.polr_allow_attestation	= 1;
+
+    apduTlvBuff[0].tag          = SE050_TAG_POLICY;
+    apduTlvBuff[0].cmd.len      = 9;
+    apduTlvBuff[0].cmd.p_data   = (uint8_t*)&policy;
 	
 	uint32_t data1    			= keyID;
-    apduTlvBuff[0].tag          = SE050_TAG_1;
-    apduTlvBuff[0].cmd.len      = 4;
-    apduTlvBuff[0].cmd.p_data   = (uint8_t *)&data1;
-    uint8_t data2[1]    		= {SE050_NIST_P256};
-    apduTlvBuff[1].tag          = SE050_TAG_2;
-    apduTlvBuff[1].cmd.len      = 1;
-    apduTlvBuff[1].cmd.p_data   = &data2[0]; 
+    apduTlvBuff[1].tag          = SE050_TAG_1;
+    apduTlvBuff[1].cmd.len      = 4;
+    apduTlvBuff[1].cmd.p_data   = (uint8_t *)&data1;
 
-    if(se050_apdu_send_cmd(apduTlvBuff, 2, &ctx, &apdu_header_table[APDU_CMD_WRITE_OBJ]) == APDU_ERROR) apduSysExit("APDU_CMD_WRITE_OBJ");
+    uint8_t data2[1]    		= {SE050_NIST_P256};
+    apduTlvBuff[2].tag          = SE050_TAG_2;
+    apduTlvBuff[2].cmd.len      = 1;
+    apduTlvBuff[2].cmd.p_data   = &data2[0]; 
+
+    if(se050_apdu_send_cmd(apduTlvBuff, 3, &ctx, &apdu_header_table[APDU_CMD_WRITE_OBJ]) == APDU_ERROR) apduSysExit("APDU_CMD_WRITE_OBJ");
 
 	return APDU_OK;
 }
