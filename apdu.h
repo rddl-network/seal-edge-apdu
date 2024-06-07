@@ -116,6 +116,40 @@ typedef struct {
 } apdu_ctx_t;
 
 /**
+ * @brief Structure storing the context of the object policy.
+ */
+typedef struct __attribute__((packed)){
+	unsigned int polr_allow_decryption : 1;
+	unsigned int polr_allow_encryption : 1;
+	unsigned int polr_allow_key_agreement : 1;
+	unsigned int polr_allow_verify : 1;
+	unsigned int polr_allow_sign : 1;
+	unsigned int polr_forbid_all : 1;
+	unsigned int polr_reserved_1 : 2;
+	unsigned int polr_require_pcr_val : 1;
+	unsigned int polr_require_sm : 1;
+	unsigned int polr_allow_delete : 1;
+	unsigned int polr_allow_gen : 1;
+	unsigned int polr_allow_write : 1;
+	unsigned int polr_allow_read : 1;
+	unsigned int polr_allow_wrap : 1;
+	unsigned int polr_allow_key_derivation : 1;
+	unsigned int polr_reserved_2 : 4;
+	unsigned int polr_allow_import_export : 1;
+	unsigned int polr_allow_desfire_dump_sess : 1;
+	unsigned int polr_allow_desfire_auth : 1;
+	unsigned int polr_allow_attestation : 1;
+	unsigned int polr_reserved_3 : 8;
+} apdu_obj_policy_rules_t;
+
+typedef struct __attribute__((packed)){
+	uint8_t					op_policy_length;
+	uint32_t				op_auth_obj_id;
+	apdu_obj_policy_rules_t	op_pol_rules;
+}apdu_obj_policy_t;
+
+
+/**
  * This command is used to initialize the APDU context structure.
  * @param ctx Pointer to an APDU context structure
  */
@@ -173,6 +207,8 @@ typedef enum {
 	APDU_CMD_VERIFY,
 	APDU_CMD_DIGESTONESHOT,
 	APDU_CMD_BINARYWRITE,
+	APDU_CMD_CREATE_CURVE,
+	APDU_CMD_SET_CURVE,
 	NUMBER_OF_APDU_CMD     
 }APDU_HEADER_CMD_LIST;
 
@@ -199,7 +235,7 @@ apdu_status_t se050_apdu_send_cmd(i2cm_tlv_t *tlv, uint8_t tlv_num, apdu_ctx_t *
 
 apdu_status_t apduInitInterface();
 apdu_status_t apduCloseInterface();
-apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID);
+apdu_status_t apduGenerateECCKeyPair_NISTP256(uint32_t keyID, bool deletable);
 apdu_status_t apduSignSha256DigestECDSA_NISTP256(const uint32_t keyID, const uint8_t * digest, uint8_t *signature[], int32_t * signatureLen );
 bool apduVerifySha256DigestECDSA_NISTP256(const uint8_t *pubKey, int32_t pubKeyLen, const uint8_t *digest, const uint8_t *signature, int32_t signatureLen);
 bool apduIDExists(uint32_t keyID);
@@ -212,9 +248,10 @@ apdu_status_t apduReadIDList(phNxpEse_data  *resp);
 apdu_status_t apduReadCryptoObjectList(phNxpEse_data  *resp);
 apdu_status_t apduCalculateSHA256(uint8_t *input, size_t inputLen, uint8_t *output[]);
 apdu_status_t apduGenerateRandom(size_t size , uint8_t *output[]);
-apdu_status_t apduBinaryWriteData(uint32_t objId, const uint8_t *input, size_t inputLen);
+apdu_status_t apduBinaryWriteData(uint32_t objId, const uint8_t *input, size_t inputLen, bool deletable);
 apdu_status_t apduBinaryReadData(uint32_t objId, size_t dataLen , uint8_t* data[]);
-int apdu_test();
+apdu_status_t apduGenerateECCKeyPair_SECP256K1(uint32_t keyID, bool deletable);
+apdu_status_t apduInjectECCKeyPair_SECP256K1(uint32_t keyID, uint8_t* privKey, uint32_t privKeyLen, uint8_t* pubKey, uint32_t pubKeyLen, bool deletable);
 
 #define MAKE_TEST_ID(x) (0xEF | x<<24) 
 
